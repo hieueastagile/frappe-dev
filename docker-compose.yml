@@ -28,7 +28,6 @@ services:
       - ./redis-conf/redis_queue.conf:/etc/conf.d/redis.conf
 
     command: ["redis-server","/etc/conf.d/redis.conf"]
-
     container_name: redis-queue
 
   redis-socketio:
@@ -44,12 +43,10 @@ services:
   frappe:
     volumes:
       - ./frappe-bench:/home/frappe/frappe-bench
-    command: "bench start"
-    build: .
+    command: "bench serve --port 8000"
+    image: hieueastagile/frappe-dev
     ports:
       - "8000:8000" #webserver_port
-      - "9000:9000" #socketio_port
-      - "6787:6787" #file_watcher_port
     stdin_open: true
     tty: true
     links:
@@ -62,4 +59,111 @@ services:
       - redis-cache
       - redis-queue
       - redis-socketio
+      - frappe-socketio
+      - frappe-watch
+      - frappe-schedule
+      - frappe-worker-short
+      - frappe-worker-long
+      - frappe-worker-default
     container_name: frappe
+
+  frappe-socketio:
+    volumes:
+      - ./frappe-bench:/home/frappe/frappe-bench
+    command: "/usr/bin/node apps/frappe/socketio.js"
+    image: hieueastagile/frappe-dev
+    ports:
+      - "9000:9000" #socketio_port
+    links:
+      - redis-cache
+      - redis-queue
+      - redis-socketio
+      - mariadb
+    depends_on:
+      - mariadb
+      - redis-cache
+      - redis-queue
+      - redis-socketio
+
+  frappe-watch:
+    volumes:
+      - ./frappe-bench:/home/frappe/frappe-bench
+    command: "bench watch"
+    image: hieueastagile/frappe-dev
+    ports:
+      - "6787:6787" #file_watcher_port
+    tty: true
+    links:
+      - redis-cache
+      - redis-queue
+      - redis-socketio
+      - mariadb
+    depends_on:
+      - mariadb
+      - redis-cache
+      - redis-queue
+      - redis-socketio
+
+  frappe-schedule:
+    volumes:
+      - ./frappe-bench:/home/frappe/frappe-bench
+    command: "bench schedule"
+    image: hieueastagile/frappe-dev
+    links:
+      - redis-cache
+      - redis-queue
+      - redis-socketio
+      - mariadb
+    depends_on:
+      - mariadb
+      - redis-cache
+      - redis-queue
+      - redis-socketio
+
+  frappe-worker-short:
+    volumes:
+      - ./frappe-bench:/home/frappe/frappe-bench
+    command: "bench worker --queue short"
+    image: hieueastagile/frappe-dev
+    links:
+      - redis-cache
+      - redis-queue
+      - redis-socketio
+      - mariadb
+    depends_on:
+      - mariadb
+      - redis-cache
+      - redis-queue
+      - redis-socketio
+
+  frappe-worker-long:
+    volumes:
+      - ./frappe-bench:/home/frappe/frappe-bench
+    command: "bench worker --queue long"
+    image: hieueastagile/frappe-dev
+    links:
+      - redis-cache
+      - redis-queue
+      - redis-socketio
+      - mariadb
+    depends_on:
+      - mariadb
+      - redis-cache
+      - redis-queue
+      - redis-socketio
+
+  frappe-worker-default:
+    volumes:
+      - ./frappe-bench:/home/frappe/frappe-bench
+    command: "bench worker --queue default"
+    image: hieueastagile/frappe-dev
+    links:
+      - redis-cache
+      - redis-queue
+      - redis-socketio
+      - mariadb
+    depends_on:
+      - mariadb
+      - redis-cache
+      - redis-queue
+      - redis-socketio
