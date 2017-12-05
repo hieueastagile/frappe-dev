@@ -65,6 +65,8 @@ services:
       - frappe-worker-short
       - frappe-worker-long
       - frappe-worker-default
+    environment:
+      DEV_SERVER: 1
     container_name: frappe
 
   frappe-socketio:
